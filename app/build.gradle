@@ -1,0 +1,80 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion COMPILE_SDK_VERSION
+    buildToolsVersion BUILD_TOOLS_VERSION
+
+    dataBinding {
+        enabled = true
+    }
+
+    defaultConfig {
+        applicationId "com.baoji.frame"
+        minSdkVersion MIN_SDK_VERSION
+        targetSdkVersion TARGET_SDK_VERSION
+        versionCode 1
+        versionName "1.0.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        flavorDimensions "versionCode"
+    }
+
+    signingConfigs {
+        release {
+            keyAlias KEYALIAS
+            keyPassword KEYPASSWORD
+            storeFile file('./keystore/dmdj_hc.jks')
+            storePassword STOREPASSWORD
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            zipAlignEnabled true
+            signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    task releaseToPGYER {
+        dependsOn 'assembleRelease'
+        doLast {
+            def _upload_url = "https://www.pgyer.com/apiv2/app/upload"
+            def _api_key = "517fb7c93868fb90ca7b195e69d9222c"
+            def _apk_path = "$buildDir/outputs/apk/release/app-release.apk"
+            def _update_description = "Python auto upload -_- "
+            def _python_file_ = file('UploadToPGY.py'.toString());
+            def process = "python ${_python_file_} ${_upload_url} ${_api_key} ${_apk_path} ${_update_description}".execute()
+
+            println "开始上传至蒲公英"
+            //获取Python脚本日志，便于出错调试
+            ByteArrayOutputStream result = new ByteArrayOutputStream()
+            def inputStream = process.getInputStream()
+            byte[] buffer = new byte[1024]
+            int length
+            while ((length = inputStream.read(buffer)) != -1) {
+                result.write(buffer, 0, length)
+            }
+            println(result.toString("UTF-8"))
+            println "上传结束"
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    testCompile 'junit:junit:4.12'
+    debugCompile "com.squareup.leakcanary:leakcanary-android:${LEAKCANARY_VERSION}"
+    testCompile "com.squareup.leakcanary:leakcanary-android-no-op:${LEAKCANARY_VERSION}"
+    releaseCompile "com.squareup.leakcanary:leakcanary-android-no-op:${LEAKCANARY_VERSION}"
+    compile "com.android.support:appcompat-v7:${ANDROID_SUPPORT_LIB_VERSION}"
+    compile "com.android.support:design:${ANDROID_SUPPORT_LIB_VERSION}"
+    compile "com.android.support:cardview-v7:${ANDROID_SUPPORT_LIB_VERSION}"
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.3.0'
+    annotationProcessor 'org.parceler:parceler:1.1.9'
+    compile project(':library')
+}
